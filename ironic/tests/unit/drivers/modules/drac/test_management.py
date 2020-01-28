@@ -22,6 +22,7 @@ Test class for DRAC management interface
 
 import mock
 from oslo_utils import importutils
+import requests
 
 import ironic.common.boot_devices
 from ironic.common import exception
@@ -29,6 +30,8 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import management as drac_mgmt
+from ironic.drivers.modules.redfish import utils as redfish_utils
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -36,6 +39,7 @@ dracclient_exceptions = importutils.try_import('dracclient.exceptions')
 
 INFO_DICT = test_utils.INFO_DICT
 
+DRAC_REDFISH_INFO_DICT = db_utils.get_test_redfish_info()
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
@@ -820,4 +824,86 @@ class DracManagementTestCase(test_utils.BaseDracTest):
             mock_client.delete_jobs.assert_called_once_with(
                 job_ids=['JID_CLEARALL_FORCE'])
 
+            self.assertIsNone(return_value)
+
+
+class DracRedfishManagementTestCase(test_utils.BaseDracTest):
+
+    def setUp(self):
+        super(DracRedfishManagementTestCase, self).setUp()
+        self.config(enabled_hardware_types=['idrac'],
+                    enabled_power_interfaces=['idrac-redfish'],
+                    enabled_management_interfaces=['idrac-redfish'],
+                    enabled_inspect_interfaces=['idrac-redfish'])
+        self.node = obj_utils.create_test_node(
+            self.context, driver='idrac',
+            driver_info=DRAC_REDFISH_INFO_DICT)
+
+    def test_get_properties(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            properties = task.driver.get_properties()
+            for prop in redfish_utils.COMMON_PROPERTIES:
+                self.assertIn(prop, properties)
+
+    @mock.patch.object(requests, 'get', autospec=True)
+    @mock.patch.object(requests, 'delete', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_clear_job_queue(self, mock_get_system, mock_delete, mock_get):
+        fake_system = mock.Mock()
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['redfish_address'] = '1.2.3.4'
+            return_value = task.driver.management.clear_job_queue(task)
+            fake_system.clear_job_queue(task)
+            self.assertTrue(fake_system.clear_job_queue.call_count)
+            self.assertIsNone(return_value)
+
+    @mock.patch.object(requests, 'post', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(
+        drac_mgmt.DracRedfishManagement,
+        'wait_for_idrac_ready',
+        autospec=True)
+    def test_reset_idrac(
+            self,
+            mock_get_system,
+            mock_post,
+            mock_wait_for_idrac_ready):
+        fake_system = mock.Mock()
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['redfish_address'] = '1.2.3.4'
+            return_value = task.driver.management.reset_idrac(task)
+            fake_system.reset_idrac(task)
+            self.assertTrue(fake_system.reset_idrac.call_count)
+            self.assertIsNone(return_value)
+
+    @mock.patch.object(requests, 'post', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    @mock.patch.object(requests, 'delete', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(
+        drac_mgmt.DracRedfishManagement,
+        'wait_for_idrac_ready',
+        autospec=True)
+    def test_known_good_state(
+            self,
+            mock_get_system,
+            mock_post,
+            mock_get,
+            mock_delete,
+            mock_wait_for_idrac_ready):
+        fake_system = mock.Mock()
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['redfish_address'] = '1.2.3.4'
+            return_value = task.driver.management.known_good_state(task)
+            fake_system.reset_idrac(task)
+            self.assertTrue(fake_system.reset_idrac.call_count)
+            fake_system.clear_job_queue(task)
+            self.assertTrue(fake_system.clear_job_queue.call_count)
             self.assertIsNone(return_value)
