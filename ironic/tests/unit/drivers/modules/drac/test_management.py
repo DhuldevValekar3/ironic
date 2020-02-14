@@ -22,7 +22,6 @@ Test class for DRAC management interface
 
 import mock
 from oslo_utils import importutils
-import requests
 
 import ironic.common.boot_devices
 from ironic.common import exception
@@ -35,11 +34,23 @@ from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+sushy = importutils.try_import('sushy')
+
 dracclient_exceptions = importutils.try_import('dracclient.exceptions')
 
 INFO_DICT = test_utils.INFO_DICT
 
 DRAC_REDFISH_INFO_DICT = db_utils.get_test_redfish_info()
+
+_SERVICE_ROOT = '/redfish/v1/Managers/'
+
+authenticator = sushy.auth.BasicAuth(
+                    DRAC_REDFISH_INFO_DICT["redfish_username"], 
+                    DRAC_REDFISH_INFO_DICT["redfish_password"])
+url = '%s%s' % (DRAC_REDFISH_INFO_DICT["redfish_address"], _SERVICE_ROOT)
+conn = sushy.Sushy(url, verify=False, auth=authenticator)
+manager = conn.get_manager('iDRAC.Embedded.1')
+oem_manager = manager.get_oem_extension('Dell')
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
@@ -826,7 +837,7 @@ class DracManagementTestCase(test_utils.BaseDracTest):
 
             self.assertIsNone(return_value)
 
-
+@mock.patch.object(drac_mgmt, 'redfish_utils', autospec=True)
 class DracRedfishManagementTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
@@ -839,71 +850,77 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             self.context, driver='idrac',
             driver_info=DRAC_REDFISH_INFO_DICT)
 
-    def test_get_properties(self):
+    def test_get_properties(self, mock_redfish_utils):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             properties = task.driver.get_properties()
             for prop in redfish_utils.COMMON_PROPERTIES:
                 self.assertIn(prop, properties)
 
-    @mock.patch.object(requests, 'get', autospec=True)
-    @mock.patch.object(requests, 'delete', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_clear_job_queue(self, mock_get_system, mock_delete, mock_get):
-        fake_system = mock.Mock()
-        mock_get_system.return_value = fake_system
+    @mock.patch.object(oem_manager, 'clear_job_queue', autospec=True)
+    def test_clear_job_queue(self, mock_clear_job_queue, mock_redfish_utils):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+        response_data = {
+            'status_code': 200
+        }
+
+        mock_manager_oem.clear_job_queue.return_value = test_utils.DictToObj(
+                                                                 response_data)
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
             return_value = task.driver.management.clear_job_queue(task)
-            fake_system.clear_job_queue(task)
-            self.assertTrue(fake_system.clear_job_queue.call_count)
-            self.assertIsNone(return_value)
+            self.assertEqual(response_data['status_code'], 
+                                return_value.status_code)
+            mock_manager_oem.clear_job_queue.assert_called_once_with(
+                                                    job_ids=['JID_CLEARALL'])
 
-    @mock.patch.object(requests, 'post', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    @mock.patch.object(
-        drac_mgmt.DracRedfishManagement,
-        'wait_for_idrac_ready',
-        autospec=True)
-    def test_reset_idrac(
-            self,
-            mock_get_system,
-            mock_post,
-            mock_wait_for_idrac_ready):
-        fake_system = mock.Mock()
-        mock_get_system.return_value = fake_system
+    @mock.patch.object(oem_manager, 'reset_idrac', autospec=True)
+    def test_reset_idrac(self, mock_reset_idrac, mock_redfish_utils):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+        response_data = {
+            'status_code': 204
+        }
+
+        mock_manager_oem.reset_idrac.return_value = test_utils.DictToObj(
+                                                                response_data)
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
             return_value = task.driver.management.reset_idrac(task)
-            fake_system.reset_idrac(task)
-            self.assertTrue(fake_system.reset_idrac.call_count)
-            self.assertIsNone(return_value)
+            self.assertEqual(response_data['status_code'], 
+                            return_value.status_code)
+            mock_manager_oem.reset_idrac.assert_called_once_with(
+                                                        manager=mock_manager)
 
-    @mock.patch.object(requests, 'post', autospec=True)
-    @mock.patch.object(requests, 'get', autospec=True)
-    @mock.patch.object(requests, 'delete', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    @mock.patch.object(
-        drac_mgmt.DracRedfishManagement,
-        'wait_for_idrac_ready',
-        autospec=True)
-    def test_known_good_state(
-            self,
-            mock_get_system,
-            mock_post,
-            mock_get,
-            mock_delete,
-            mock_wait_for_idrac_ready):
-        fake_system = mock.Mock()
-        mock_get_system.return_value = fake_system
+    def test_known_good_state(self, mock_redfish_utils):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+
+        response_data = [{
+            'status_code': 200
+        },
+        {
+            'status_code': 204
+        }]
+
+        my_data = [test_utils.DictToObj(response) for response in response_data]
+        mock_manager_oem.known_good_state.return_value = my_data
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
-            return_value = task.driver.management.known_good_state(task)
-            fake_system.reset_idrac(task)
-            self.assertTrue(fake_system.reset_idrac.call_count)
-            fake_system.clear_job_queue(task)
-            self.assertTrue(fake_system.clear_job_queue.call_count)
-            self.assertIsNone(return_value)
+            return_values = task.driver.management.known_good_state(task)
+            mock_manager_oem.known_good_state.assert_called_once_with(
+                                                        manager=mock_manager)
+
