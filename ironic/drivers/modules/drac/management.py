@@ -462,8 +462,10 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                         unfinished_jobs = oem_manager.get_unfinished_jobs()
                         if unfinished_jobs == []:
                             LOG.info("Not found any unfinished jobs")
-                        delete_job_response = oem_manager.clear_job_queue(
-                                                        job_ids=['JID_CLEARALL'])
+                            return None
+                        else:
+                            delete_job_response = oem_manager.clear_job_queue(
+                                                    job_ids = unfinished_jobs)
 
                     except sushy.exceptions.SushyError as e:
                         LOG.debug("Sushy OEM extension Python package "
