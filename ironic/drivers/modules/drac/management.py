@@ -88,9 +88,6 @@ _CLEAR_JOB_IDS = 'JID_CLEARALL_FORCE'
 # Clean steps constant
 _CLEAR_JOBS_CLEAN_STEPS = ['clear_job_queue', 'known_good_state']
 
-# System Management Constant
-_SERVICE_ROOT = '/redfish/v1/Managers/'
-
 # Job Response Code Constant
 _JOB_RESPONSE_CODE = 200
 
