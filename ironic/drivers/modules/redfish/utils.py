@@ -24,14 +24,18 @@ import retrying
 import rfc3986
 import six
 from six.moves import urllib
+import time
+import subprocess
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conf import CONF
 
 sushy = importutils.try_import('sushy')
+drac_exceptions = importutils.try_import('dracclient.exceptions')
 
 LOG = log.getLogger(__name__)
+
 
 REQUIRED_PROPERTIES = {
     'redfish_address': _('The URL address to the Redfish controller. It '
@@ -274,3 +278,72 @@ def get_system(node):
                       'node %(node)s. Error: %(error)s',
                       {'address': driver_info['address'],
                        'node': node.uuid, 'error': e})
+
+def _ping_host(host):
+    response = subprocess.call(
+        "ping -c 1 {} 2>&1 1>/dev/null".format(host), shell=True)
+    return (response == 0)
+
+def wait_for_host_state(host,
+                        alive=True,
+                        ping_count=3,
+                        retries=24):
+    if alive:
+        ping_type = "pingable"
+
+    else:
+        ping_type = "not pingable"
+
+    LOG.info("Waiting for the iDRAC to become %s", ping_type)
+
+    response_count = 0
+    state_reached = False
+
+    while retries > 0 and not state_reached:
+        response = _ping_host(host)
+        retries -= 1
+        if response == alive:
+            response_count += 1
+            LOG.debug("The iDRAC is %s, count=%s",
+                      ping_type,
+                      response_count)
+            if response_count == ping_count:
+                LOG.debug("Reached specified ping count")
+                state_reached = True
+        else:
+            response_count = 0
+            if alive:
+                LOG.debug("The iDRAC is still not pingable")
+            else:
+                LOG.debug("The iDRAC is still pingable")
+        time.sleep(10)
+
+    return state_reached
+
+def wait_for_host(redfish_node_ip):
+    LOG.debug("iDRAC was reset, waiting for return to operational state")
+    state_reached = wait_for_host_state(
+                            redfish_node_ip,
+                            alive=False,
+                            ping_count=2,
+                            retries=24)
+
+    if not state_reached:
+        raise exceptions.DRACOperationFailed(
+            drac_messages="Timed out waiting for the %s iDRAC to become "
+            "not pingable" % redfish_node_ip)
+
+    LOG.info("The iDRAC has become not pingable")
+
+    state_reached = wait_for_host_state(
+        redfish_node_ip,
+        alive=True,
+        ping_count=3,
+        retries=24)
+    if not state_reached:
+        raise exceptions.DRACOperationFailed(
+            drac_messages="Timed out waiting for the %s iDRAC to become "
+            "pingable" % redfish_node_ip)
+
+    LOG.info("The iDRAC has become pingable")
+

@@ -406,7 +406,9 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                 LOG.error(error_msg)
                 raise exception.RedfishError(error=error_msg)
             try:
-                response = oem_manager.known_good_state(
+                delete_job_response = oem_manager.clear_job_queue(
+                                                job_ids=['JID_CLEARALL'])
+                reset_job_response = oem_manager.reset_idrac(
                                                 manager=manager)
             except sushy.exceptions.SushyError as e:
                 LOG.debug("Sushy OEM extension Python package "
@@ -414,7 +416,6 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                           "for %(node)s, Error : %(error)s" %
                           {'node':task.node.uuid, 'error':e})
 
-        delete_job_response = response[0]
         if delete_job_response.status_code == _JOB_RESPONSE_CODE:
             LOG.info("Job queue cleared for node %(node)s via OEM" %
                     {'node': task.node.uuid})
@@ -422,7 +423,6 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             LOG.error("Failed to clear job queue, node : %(node)s " %
                      {'node': task.node.uuid})
 
-        reset_job_response = response[1]
         if reset_job_response.status_code == _RESET_JOB_RESPONSE_CODE:
             LOG.info("idrac reset success for node %(node)s via OEM" %
                     {'node': task.node.uuid})
@@ -447,10 +447,10 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
                         oem_manager = manager.get_oem_extension('Dell')
                     except sushy.exceptions.OEMExtensionNotFoundError as e:
-                        error_msg = (_("Search for Sushy OEM extension package "
-                                   "'sushy-oem-idrac' failed for node %(node)s. "
-                                   "Ensure it is installed. Error: %(error)s") %
-                                 {'node': task.node.uuid, 'error': e})
+                        error_msg = (_("Search for Sushy OEM extension package"
+                                "'sushy-oem-idrac' failed for node %(node)s."
+                                "Ensure it is installed. Error: %(error)s") %
+                                {'node': task.node.uuid, 'error': e})
                         LOG.error(error_msg)
                         raise exception.RedfishError(error=error_msg)
 
