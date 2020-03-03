@@ -347,3 +347,31 @@ def wait_for_host(redfish_node_ip):
 
     LOG.info("The iDRAC has become pingable")
 
+def wait_until_idrac_is_ready(oem_manager, retries=None, retry_delay=None):
+    """Waits until the iDRAC is in a ready state
+    :param retries: The number of times to check if the iDRAC is
+                    ready. If None, the value of ready_retries that
+                    was provided when the object was created is
+                    used.
+    :param retry_delay: The number of seconds to wait between
+                        retries. If None, the value of
+                        ready_retry_delay that was provided when the
+                        object was created is used.
+    """
+
+    while retries > 0:
+        LOG.debug("Checking to see if the iDRAC is ready")
+
+        if oem_manager.is_idrac_ready():
+            LOG.debug("The iDRAC is ready")
+            return
+
+        LOG.debug("The iDRAC is not ready")
+        retries -= 1
+        if retries > 0:
+            time.sleep(retry_delay)
+
+    if retries == 0:
+        err_msg = "Timed out waiting for the iDRAC to become ready after reset"
+        LOG.error(err_msg)
+        raise

@@ -94,6 +94,10 @@ _JOB_RESPONSE_CODE = 200
 # Reset Idrac Job Response Code Constant
 _RESET_JOB_RESPONSE_CODE = 204
 
+# IS iDRAC READY RETRY
+IDRAC_IS_READY_RETRIES = 96
+IDRAC_IS_READY_RETRY_DELAY_SEC = 10
+
 def _get_boot_device(node, drac_boot_devices=None):
     client = drac_common.get_drac_client(node)
 
@@ -377,9 +381,19 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                           "sushy-oem-idrac failed to reset idrac"
                           "for %(node)s, Error : %(error)s" %
                           {'node':task.node.uuid, 'error':e})
+        url = oem_manager._conn._url
+        redfish_node_ip = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}',
+                                    url).group()
         if reset_job_response.status_code == _RESET_JOB_RESPONSE_CODE:
             LOG.info("idrac reset success for node %(node)s via OEM" %
                     {'node': task.node.uuid})
+            LOG.debug("iDRAC was reset, waiting for return to operational state")
+            redfish_utils.wait_for_host(redfish_node_ip)
+            LOG.info("The iDRAC has become pingable")
+            LOG.info("Waiting for the iDRAC to become ready")
+            redfish_utils.wait_until_idrac_is_ready(oem_manager,
+                        retries=IDRAC_IS_READY_RETRIES,
+                        retry_delay=IDRAC_IS_READY_RETRY_DELAY_SEC)
         else:
             LOG.error("Failed to reset idrac for %(node)s" %
                     {'node': task.node.uuid})
