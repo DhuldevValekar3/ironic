@@ -294,7 +294,7 @@ def wait_for_host_state(host,
     else:
         ping_type = "not pingable"
 
-    LOG.info("Waiting for the iDRAC to become %s", ping_type)
+    LOG.info("Waiting for the iDRAC %s to become %s" % (host,ping_type))
 
     response_count = 0
     state_reached = False
@@ -313,17 +313,17 @@ def wait_for_host_state(host,
         else:
             response_count = 0
             if alive:
-                LOG.debug("The iDRAC is still not pingable")
+                LOG.debug("The iDRAC for node %s is still not pingable" % host)
             else:
-                LOG.debug("The iDRAC is still pingable")
+                LOG.debug("The iDRAC for node %s is still pingable" % host)
         time.sleep(10)
 
     return state_reached
 
-def wait_for_host(redfish_node_ip):
+def wait_for_host(host):
     LOG.debug("iDRAC was reset, waiting for return to operational state")
     state_reached = wait_for_host_state(
-                            redfish_node_ip,
+                            host,
                             alive=False,
                             ping_count=2,
                             retries=24)
@@ -331,47 +331,45 @@ def wait_for_host(redfish_node_ip):
     if not state_reached:
         raise exceptions.DRACOperationFailed(
             drac_messages="Timed out waiting for the %s iDRAC to become "
-            "not pingable" % redfish_node_ip)
+            "not pingable" % host)
 
-    LOG.info("The iDRAC has become not pingable")
+    LOG.info("The iDRAC %s has become not pingable" % host)
 
     state_reached = wait_for_host_state(
-        redfish_node_ip,
+        host,
         alive=True,
         ping_count=3,
         retries=24)
     if not state_reached:
         raise exceptions.DRACOperationFailed(
             drac_messages="Timed out waiting for the %s iDRAC to become "
-            "pingable" % redfish_node_ip)
+            "pingable" % host)
 
-    LOG.info("The iDRAC has become pingable")
+    LOG.info("The iDRAC %s has become pingable" % host)
 
-def wait_until_idrac_is_ready(oem_manager, retries=None, retry_delay=None):
+def wait_until_idrac_is_ready(oem_manager, host, retries, retry_delay):
     """Waits until the iDRAC is in a ready state
     :param retries: The number of times to check if the iDRAC is
-                    ready. If None, the value of ready_retries that
-                    was provided when the object was created is
-                    used.
+                    ready.
     :param retry_delay: The number of seconds to wait between
-                        retries. If None, the value of
-                        ready_retry_delay that was provided when the
-                        object was created is used.
+                        retries.
     """
 
     while retries > 0:
-        LOG.debug("Checking to see if the iDRAC is ready")
+        LOG.debug("Checking to see if the iDRAC %s is ready" % host)
 
         if oem_manager.is_idrac_ready():
-            LOG.debug("The iDRAC is ready")
+            LOG.debug("The iDRAC %s is ready" % host)
             return
 
-        LOG.debug("The iDRAC is not ready")
+        LOG.debug("The iDRAC %s is not ready" % host)
         retries -= 1
         if retries > 0:
             time.sleep(retry_delay)
 
     if retries == 0:
-        err_msg = "Timed out waiting for the iDRAC to become ready after reset"
+        err_msg = ("Timed out waiting for the iDRAC %s "
+                    "to become ready after reset" %
+                    host)
         LOG.error(err_msg)
-        raise
+        raise exceptions.DRACOperationFailed(drac_messages=err_msg)

@@ -23,6 +23,7 @@ DRAC management interface
 import json
 import re
 import time
+from urllib.parse import urlparse
 
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
@@ -90,9 +91,6 @@ _CLEAR_JOBS_CLEAN_STEPS = ['clear_job_queue', 'known_good_state']
 
 # Job Response Code Constant
 _JOB_RESPONSE_CODE = 200
-
-# Reset Idrac Job Response Code Constant
-_RESET_JOB_RESPONSE_CODE = 204
 
 # IS iDRAC READY RETRY
 IDRAC_IS_READY_RETRIES = 96
@@ -323,7 +321,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: None if it is completed.
-        :raises: DracOperationError on an error from python-dracclient.
+        :raises: RedfishError on an error.
         """
         system = redfish_utils.get_system(task.node)
         for manager in system.managers:
@@ -337,21 +335,28 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                 LOG.error(error_msg)
                 raise exception.RedfishError(error=error_msg)
             try:
-                delete_job_response = oem_manager.clear_job_queue(
+                delete_job_response = oem_manager.delete_jobs(task,
                                                 job_ids=['JID_CLEARALL'])
             except sushy.exceptions.SushyError as e:
-                LOG.debug("Sushy OEM extension Python package "
+                error_msg = ("Sushy OEM extension Python package "
                           "sushy-oem-idrac failed to clear job queue"
                           "for %(node)s, Error : %(error)s" %
                           {'node':task.node.uuid, 'error':e})
+                LOG.error(error_msg)
+                raise exception.RedfishError(error=error_msg)
 
         if delete_job_response.status_code == _JOB_RESPONSE_CODE:
-            LOG.info("Job queue cleared for node %(node)s via OEM" %
+            msg = ("Job queue cleared for node %(node)s via OEM" %
                     {'node': task.node.uuid})
+            LOG.info(msg)
+            LOG.debug(msg)
         else:
-            LOG.error("Failed to clear job queue, node : %(node)s " %
-                     {'node': task.node.uuid})
-        return delete_job_response
+            error_msg = ("Failed to clear job queue, node : %(node)s " %
+                        {'node': task.node.uuid})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+        return None
 
     @METRICS.timer('DracRedfishManagement.reset_idrac')
     @base.clean_step(priority=0)
@@ -360,7 +365,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: None if it is completed.
-        :raises: DracOperationError on an error from python-dracclient.
+        :raises: RedfishError on an error.
         """
         system = redfish_utils.get_system(task.node)
         for manager in system.managers:
@@ -374,30 +379,37 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                 LOG.error(error_msg)
                 raise exception.RedfishError(error=error_msg)
             try:
-                reset_job_response = oem_manager.reset_idrac(
-                                                manager=manager)
+                reset_job_response = oem_manager.reset_idrac(task)
             except sushy.exceptions.SushyError as e:
-                LOG.debug("Sushy OEM extension Python package "
+                error_msg = ("Sushy OEM extension Python package "
                           "sushy-oem-idrac failed to reset idrac"
                           "for %(node)s, Error : %(error)s" %
                           {'node':task.node.uuid, 'error':e})
-        url = oem_manager._conn._url
-        redfish_node_ip = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}',
-                                    url).group()
-        if reset_job_response.status_code == _RESET_JOB_RESPONSE_CODE:
-            LOG.info("idrac reset success for node %(node)s via OEM" %
-                    {'node': task.node.uuid})
-            LOG.debug("iDRAC was reset, waiting for return to operational state")
-            redfish_utils.wait_for_host(redfish_node_ip)
-            LOG.info("The iDRAC has become pingable")
-            LOG.info("Waiting for the iDRAC to become ready")
+                LOG.error(error_msg)
+                raise exception.RedfishError(error=error_msg)
+
+        redfish_address = task.node.driver_info.get('redfish_address')
+        redfish_address = urlparse(redfish_address)
+        redfish_hostname = redfish_address.netloc
+
+        if reset_job_response.status_code == _JOB_RESPONSE_CODE:
+            msg = ("iDRAC was reset for node %(node)s via OEM,"
+                    "waiting for return to operational state" %
+                    {'node':task.node.uuid})
+            LOG.info(msg)
+            LOG.debug(msg)
+            redfish_utils.wait_for_host(redfish_hostname)
             redfish_utils.wait_until_idrac_is_ready(oem_manager,
-                        retries=IDRAC_IS_READY_RETRIES,
-                        retry_delay=IDRAC_IS_READY_RETRY_DELAY_SEC)
+                        redfish_hostname,
+                        IDRAC_IS_READY_RETRIES,
+                        IDRAC_IS_READY_RETRY_DELAY_SEC)
         else:
-            LOG.error("Failed to reset idrac for %(node)s" %
-                    {'node': task.node.uuid})
-        return reset_job_response
+            error_msg = ("Failed to reset idrac for %(node)s" %
+                        {'node': task.node.uuid})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+        return None
 
     @METRICS.timer('DracRedfishManagement.known_good_state')
     @base.clean_step(priority=0)
@@ -406,43 +418,11 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: None if it is completed.
-        :raises: DracOperationError on an error from python-dracclient.
+        :raises: RedfishError on an error.
         """
-        system = redfish_utils.get_system(task.node)
-        for manager in system.managers:
-            try:
-                oem_manager = manager.get_oem_extension('Dell')
-            except sushy.exceptions.OEMExtensionNotFoundError as e:
-                error_msg = (_("Search for Sushy OEM extension package "
-                           "'sushy-oem-idrac' failed for node %(node)s. "
-                           "Ensure it is installed. Error: %(error)s") %
-                         {'node': task.node.uuid, 'error': e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
-            try:
-                delete_job_response = oem_manager.clear_job_queue(
-                                                job_ids=['JID_CLEARALL'])
-                reset_job_response = oem_manager.reset_idrac(
-                                                manager=manager)
-            except sushy.exceptions.SushyError as e:
-                LOG.debug("Sushy OEM extension Python package "
-                          "sushy-oem-idrac failed to known_good_state step"
-                          "for %(node)s, Error : %(error)s" %
-                          {'node':task.node.uuid, 'error':e})
-
-        if delete_job_response.status_code == _JOB_RESPONSE_CODE:
-            LOG.info("Job queue cleared for node %(node)s via OEM" %
-                    {'node': task.node.uuid})
-        else:
-            LOG.error("Failed to clear job queue, node : %(node)s " %
-                     {'node': task.node.uuid})
-
-        if reset_job_response.status_code == _RESET_JOB_RESPONSE_CODE:
-            LOG.info("idrac reset success for node %(node)s via OEM" %
-                    {'node': task.node.uuid})
-        else:
-            LOG.error("Failed to reset idrac for %(node)s" %
-                     {'node': task.node.uuid})
+        self.reset_idrac(task)
+        self.clear_job_queue(task)
+        return None
 
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
@@ -470,27 +450,36 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
                     try:
 
-                        unfinished_jobs = oem_manager.get_unfinished_jobs()
+                        unfinished_jobs = oem_manager.get_unfinished_jobs(task)
                         if unfinished_jobs == []:
-                            LOG.info("Not found any unfinished jobs")
+                            info_msg = ("Not found any unfinished jobs for node"
+                                        "%(node)s" %
+                                        {'node':task.node.uuid})
+                            LOG.info(info_msg)
                             return None
                         else:
-                            delete_job_response = oem_manager.clear_job_queue(
+                            delete_job_response = oem_manager.delete_jobs(
+                                                    task,
                                                     job_ids = unfinished_jobs)
 
                     except sushy.exceptions.SushyError as e:
-                        LOG.debug("Sushy OEM extension Python package "
-                                  "sushy-oem-idrac failed to clear job queue"
-                                  "for %(node)s, Error : %(error)s" %
-                                  {'node':task.node.uuid, 'error':e})
+                        error_msg = ("Sushy OEM extension Python package "
+                                    "sushy-oem-idrac failed to clear job queue"
+                                    "for %(node)s, Error : %(error)s" %
+                                    {'node':task.node.uuid, 'error':e})
+                        LOG.error(error_msg)
+                        raise exception.RedfishError(error=error_msg)
 
                 if delete_job_response.status_code == _JOB_RESPONSE_CODE:
-                    LOG.info("Unfinished job cleared for node %(node)s " %
-                            {'node': task.node.uuid})
+                    info_msg = ("Unfinished job cleared for node %(node)s " %
+                                {'node': task.node.uuid})
+                    LOG.info(info_msg)
                 else:
-                    LOG.error("Failed to clear unfinished jobs from queue, "
-                              "node : %(node)s " %
-                             {'node': task.node.uuid})
+                    error_msg = ("Failed to clear unfinished jobs from queue, "
+                                "node : %(node)s " %
+                                {'node': task.node.uuid})
+                    LOG.error(error_msg)
+                    raise exception.RedfishError(error=error_msg)
 
 class DracWSManManagement(base.ManagementInterface):
 
