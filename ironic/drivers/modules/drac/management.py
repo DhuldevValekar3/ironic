@@ -39,6 +39,7 @@ from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.redfish import management as redfish_management
 from ironic.drivers.modules.redfish import utils as redfish_utils
+from ironic.drivers.modules.drac import utils as drac_utils
 
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
@@ -346,10 +347,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                 raise exception.RedfishError(error=error_msg)
 
         if delete_job_response.status_code == _JOB_RESPONSE_CODE:
-            msg = ("Job queue cleared for node %(node)s via OEM" %
+            LOG.info("Job queue cleared for node %(node)s via OEM" %
                     {'node': task.node.uuid})
-            LOG.info(msg)
-            LOG.debug(msg)
         else:
             error_msg = ("Failed to clear job queue, node : %(node)s " %
                         {'node': task.node.uuid})
@@ -360,7 +359,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
     @METRICS.timer('DracRedfishManagement.reset_idrac')
     @base.clean_step(priority=0)
-    def reset_idrac(self, task):
+    def reset_idrac(self, task, ready_wait_time=30):
         """Reset the iDRAC.
 
         :param task: a TaskManager instance containing the node to act on.
@@ -393,13 +392,12 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         redfish_hostname = redfish_address.netloc
 
         if reset_job_response.status_code == _JOB_RESPONSE_CODE:
-            msg = ("iDRAC was reset for node %(node)s via OEM,"
+            LOG.info("iDRAC was reset for node %(node)s via OEM,"
                     "waiting for return to operational state" %
                     {'node':task.node.uuid})
-            LOG.info(msg)
-            LOG.debug(msg)
-            redfish_utils.wait_for_host(redfish_hostname)
-            redfish_utils.wait_until_idrac_is_ready(oem_manager,
+            drac_utils.wait_for_host(redfish_hostname)
+            time.sleep(ready_wait_time)
+            drac_utils.wait_until_idrac_is_ready(oem_manager,
                         redfish_hostname,
                         IDRAC_IS_READY_RETRIES,
                         IDRAC_IS_READY_RETRY_DELAY_SEC)
@@ -426,12 +424,6 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
-        super(
-            DracRedfishManagement,
-            self).set_boot_device(
-            task,
-            device,
-            persistent=False)
         if task.node.driver_internal_info.get("clean_steps"):
             if task.node.driver_internal_info.get("clean_steps")[0].get(
                     'step') in _CLEAR_JOBS_CLEAN_STEPS:
@@ -456,7 +448,6 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                                         "%(node)s" %
                                         {'node':task.node.uuid})
                             LOG.info(info_msg)
-                            return None
                         else:
                             delete_job_response = oem_manager.delete_jobs(
                                                     task,
@@ -480,6 +471,13 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                                 {'node': task.node.uuid})
                     LOG.error(error_msg)
                     raise exception.RedfishError(error=error_msg)
+
+        super(
+            DracRedfishManagement,
+            self).set_boot_device(
+            task,
+            device,
+            persistent=False)
 
 class DracWSManManagement(base.ManagementInterface):
 
