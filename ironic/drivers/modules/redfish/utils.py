@@ -30,10 +30,8 @@ from ironic.common.i18n import _
 from ironic.conf import CONF
 
 sushy = importutils.try_import('sushy')
-drac_exceptions = importutils.try_import('dracclient.exceptions')
 
 LOG = log.getLogger(__name__)
-
 
 REQUIRED_PROPERTIES = {
     'redfish_address': _('The URL address to the Redfish controller. It '
