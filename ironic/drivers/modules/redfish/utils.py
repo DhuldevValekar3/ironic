@@ -24,8 +24,6 @@ import retrying
 import rfc3986
 import six
 from six.moves import urllib
-import time
-import subprocess
 
 from ironic.common import exception
 from ironic.common.i18n import _
