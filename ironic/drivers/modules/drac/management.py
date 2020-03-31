@@ -378,7 +378,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                 LOG.error(error_msg)
                 raise exception.RedfishError(error=error_msg)
             try:
-                reset_job_response = oem_manager.reset_idrac(task)
+                reset_job_response = oem_manager.reset_idrac(task,
+                                                            force = 'Force')
             except sushy.exceptions.SushyError as e:
                 error_msg = ("Sushy OEM extension Python package "
                           "sushy-oem-idrac failed to reset idrac"
@@ -452,25 +453,25 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                             delete_job_response = oem_manager.delete_jobs(
                                                     task,
                                                     job_ids = unfinished_jobs)
+                            if delete_job_response.status_code == _JOB_RESPONSE_CODE:
+                                info_msg = ("Unfinished job cleared for node %(node)s " %
+                                            {'node': task.node.uuid})
+                                LOG.info(info_msg)
+                            else:
+                                error_msg = ("Failed to clear unfinished jobs from queue, "
+                                            "node : %(node)s " %
+                                            {'node': task.node.uuid})
+                                LOG.error(error_msg)
+                                raise exception.RedfishError(error=error_msg)
 
                     except sushy.exceptions.SushyError as e:
                         error_msg = ("Sushy OEM extension Python package "
-                                    "sushy-oem-idrac failed to clear job queue"
+                                    "sushy-oem-idrac "
+                                    "failed to delete unfinished jobs"
                                     "for %(node)s, Error : %(error)s" %
                                     {'node':task.node.uuid, 'error':e})
                         LOG.error(error_msg)
                         raise exception.RedfishError(error=error_msg)
-
-                if delete_job_response.status_code == _JOB_RESPONSE_CODE:
-                    info_msg = ("Unfinished job cleared for node %(node)s " %
-                                {'node': task.node.uuid})
-                    LOG.info(info_msg)
-                else:
-                    error_msg = ("Failed to clear unfinished jobs from queue, "
-                                "node : %(node)s " %
-                                {'node': task.node.uuid})
-                    LOG.error(error_msg)
-                    raise exception.RedfishError(error=error_msg)
 
         super(
             DracRedfishManagement,

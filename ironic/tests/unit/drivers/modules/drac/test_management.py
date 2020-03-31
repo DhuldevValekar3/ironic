@@ -30,6 +30,7 @@ from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.redfish import utils as redfish_utils
+from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -857,65 +858,84 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             for prop in redfish_utils.COMMON_PROPERTIES:
                 self.assertIn(prop, properties)
 
-    @mock.patch.object(oem_manager, 'clear_job_queue', autospec=True)
+    @mock.patch.object(oem_manager, 'delete_jobs', autospec=True)
     def test_clear_job_queue(self, mock_clear_job_queue, mock_redfish_utils):
         mock_system = mock_redfish_utils.get_system.return_value
         mock_manager = mock.MagicMock()
         mock_system.managers = [mock_manager]
         mock_manager_oem = mock_manager.get_oem_extension.return_value
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
         response_data = {
             'status_code': 200
         }
 
-        mock_manager_oem.clear_job_queue.return_value = test_utils.DictToObj(response_data)
+        mock_manager_oem.delete_jobs.return_value = test_utils.DictToObj(
+                                                                response_data)
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
             return_value = task.driver.management.clear_job_queue(task)
-            self.assertEqual(response_data['status_code'], return_value.status_code)
-            mock_manager_oem.clear_job_queue.assert_called_once_with(job_ids=['JID_CLEARALL'])
+            self.assertIsNone(return_value)
+            mock_manager_oem.delete_jobs.assert_called_once_with(task,
+                                                    job_ids=['JID_CLEARALL'])
 
     @mock.patch.object(oem_manager, 'reset_idrac', autospec=True)
-    def test_reset_idrac(self, mock_reset_idrac, mock_redfish_utils):
+    @mock.patch.object(drac_utils, 'wait_for_host', autospec=True)
+    @mock.patch.object(drac_utils, 'wait_until_idrac_is_ready', autospec=True)
+    def test_reset_idrac(self, 
+                        mock_reset_idrac, 
+                        mock_wait_for_host,
+                        mock_wait_until_idrac_ready,
+                        mock_redfish_utils):
         mock_system = mock_redfish_utils.get_system.return_value
         mock_manager = mock.MagicMock()
         mock_system.managers = [mock_manager]
         mock_manager_oem = mock_manager.get_oem_extension.return_value
         response_data = {
-            'status_code': 204
+            'status_code': 200
         }
 
-        mock_manager_oem.reset_idrac.return_value = test_utils.DictToObj(response_data)
+        mock_manager_oem.reset_idrac.return_value = test_utils.DictToObj(
+                                                                response_data)
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
             return_value = task.driver.management.reset_idrac(task)
-            self.assertEqual(response_data['status_code'], return_value.status_code)
-            mock_manager_oem.reset_idrac.assert_called_once_with(manager=mock_manager)
+            self.assertIsNone(return_value)
+            mock_manager_oem.reset_idrac.assert_called_once_with(task, 
+                                                               force='Force')
 
-    def test_known_good_state(self, mock_redfish_utils):
+    @mock.patch.object(oem_manager, 'reset_idrac', autospec=True)
+    @mock.patch.object(oem_manager, 'delete_jobs', autospec=True)
+    @mock.patch.object(drac_utils, 'wait_for_host', autospec=True)
+    @mock.patch.object(drac_utils, 'wait_until_idrac_is_ready', autospec=True)
+    def test_known_good_state(self, 
+                                mock_reset_idrac,
+                                mock_delete_jobs,
+                                mock_wait_for_host, 
+                                mock_wait_until_idrac_is_ready, 
+                                mock_redfish_utils):
         mock_system = mock_redfish_utils.get_system.return_value
         mock_manager = mock.MagicMock()
         mock_system.managers = [mock_manager]
         mock_manager_oem = mock_manager.get_oem_extension.return_value
-
-        job_response_data = {
+        response_data = {
             'status_code': 200
         }
-        reset_response_data = {
-            'status_code': 204
-        }
 
-        mock_manager_oem.clear_job_queue.return_value = test_utils.DictToObj(job_response_data)
-        mock_manager_oem.reset_idrac.return_value = test_utils.DictToObj(reset_response_data)
-
+        mock_manager_oem.delete_jobs.return_value = test_utils.DictToObj(
+                                                                response_data)
+        mock_manager_oem.reset_idrac.return_value = test_utils.DictToObj(
+                                                                response_data)
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
-            return_values = task.driver.management.known_good_state(task)
-            mock_manager_oem.clear_job_queue.assert_called_once_with(job_ids=['JID_CLEARALL'])
-            mock_manager_oem.reset_idrac.assert_called_once_with(manager=mock_manager)
-
+            return_value = task.driver.management.known_good_state(task)
+            self.assertIsNone(return_value)
+            mock_manager_oem.delete_jobs.assert_called_once_with(task,
+                                                    job_ids=['JID_CLEARALL'])
+            mock_manager_oem.reset_idrac.assert_called_once_with(task, 
+                                                               force='Force')

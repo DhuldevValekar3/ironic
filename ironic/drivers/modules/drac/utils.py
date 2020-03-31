@@ -1,17 +1,17 @@
-# Copyright 2017 Red Hat, Inc.
+# Copyright (c) 2020 Dell Inc. or its subsidiaries.
 # All Rights Reserved.
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#         http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from oslo_utils import importutils
 from oslo_log import log
@@ -78,7 +78,7 @@ def wait_for_host(host):
         LOG.error(error_msg)
         raise exceptions.DRACOperationFailed(drac_messages=error_msg)
 
-    LOG.info("The iDRAC %s has become not pingable" % host)
+    LOG.info("The iDRAC for node %s is not pingable" % host)
 
     state_reached = wait_for_host_state(
         host,
@@ -86,12 +86,12 @@ def wait_for_host(host):
         ping_count=3,
         retries=24)
     if not state_reached:
-        error_msg = ("Timed out waiting for the %s iDRAC to become "
+        error_msg = ("Timed out waiting iDRAC for node %s to become "
                     "pingable" % host)
         LOG.error(error_msg)
         raise exceptions.DRACOperationFailed(drac_messages=error_msg)
 
-    LOG.info("The iDRAC %s has become pingable" % host)
+    LOG.info("The iDRAC for node %s is pingable" % host)
 
 def wait_until_idrac_is_ready(oem_manager, host, retries, retry_delay):
     """Waits until the iDRAC is in a ready state
@@ -102,19 +102,19 @@ def wait_until_idrac_is_ready(oem_manager, host, retries, retry_delay):
     """
 
     while retries > 0:
-        LOG.debug("Checking to see if the iDRAC %s is ready" % host)
+        LOG.debug("Checking to see if the iDRAC for node %s is ready" % host)
 
         if oem_manager.is_idrac_ready():
-            LOG.debug("The iDRAC %s is ready" % host)
+            LOG.debug("The iDRAC for node %s is ready" % host)
             return
 
-        LOG.debug("The iDRAC %s is not ready" % host)
+        LOG.debug("The iDRAC for node %s is not ready" % host)
         retries -= 1
         if retries > 0:
             time.sleep(retry_delay)
 
     if retries == 0:
-        error_msg = ("Timed out waiting for the iDRAC %s "
+        error_msg = ("Timed out waiting iDRAC for node %s "
                     "to become ready after reset" %
                     host)
         LOG.error(error_msg)
