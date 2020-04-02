@@ -275,3 +275,19 @@ def get_system(node):
                       {'address': driver_info['address'],
                        'node': node.uuid, 'error': e})
 
+@retrying.retry(
+    retry_on_exception=lambda exception: isinstance(exception, Exception),
+    stop_max_attempt_number=60,
+    wait_fixed=1 * 1000)
+def wait_until_get_system_ready(node):
+    driver_info = parse_driver_info(node)
+    system_id = driver_info['system_id']
+    try:
+        with SessionCache(driver_info) as conn:
+            return conn.get_system(system_id)
+    except exception.RedfishConnectionError as e:
+        err_msg = ("system is not ready for node %s, retrying it"
+                   %(node.uuid))
+        LOG.warning(err_msg)
+        raise exception.RedfishConnectionError(node=node.uuid, error=err_msg)
+

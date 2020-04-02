@@ -402,6 +402,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                         redfish_hostname,
                         IDRAC_IS_READY_RETRIES,
                         IDRAC_IS_READY_RETRY_DELAY_SEC)
+            redfish_utils.wait_until_get_system_ready(task.node)
         else:
             error_msg = ("Failed to reset idrac for %(node)s" %
                         {'node': task.node.uuid})
