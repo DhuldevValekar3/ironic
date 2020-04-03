@@ -865,7 +865,6 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
             return_value = task.driver.management.clear_job_queue(task)
-            self.assertIsNone(return_value)
             mock_manager_oem.delete_jobs.assert_called_once_with(task,
                                                     job_ids=['JID_CLEARALL'])
 

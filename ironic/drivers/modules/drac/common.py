@@ -24,7 +24,6 @@ from ironic.common import utils
 
 from ironic.tests.unit.db import utils as db_utils
 
-
 drac_client = importutils.try_import('dracclient.client')
 drac_constants = importutils.try_import('dracclient.constants')
 
@@ -124,7 +123,6 @@ def get_drac_client(node):
                                     driver_info['drac_protocol'])
 
     return client
-
 
 
 def get_sushy_oem_manager():
