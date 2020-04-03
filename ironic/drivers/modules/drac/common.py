@@ -22,10 +22,19 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 
+from ironic.tests.unit.db import utils as db_utils
+
+
 drac_client = importutils.try_import('dracclient.client')
 drac_constants = importutils.try_import('dracclient.constants')
 
 LOG = logging.getLogger(__name__)
+
+sushy = importutils.try_import('sushy')
+dracclient_exceptions = importutils.try_import('dracclient.exceptions')
+
+DRAC_REDFISH_INFO_DICT = db_utils.get_test_redfish_info()
+_SERVICE_ROOT = '/redfish/v1/Managers/'
 
 REQUIRED_PROPERTIES = {
     'drac_address': _('IP address or hostname of the DRAC card. Required.'),
@@ -115,3 +124,18 @@ def get_drac_client(node):
                                     driver_info['drac_protocol'])
 
     return client
+
+
+
+def get_sushy_oem_manager():
+
+    authenticator = sushy.auth.BasicAuth(
+                    DRAC_REDFISH_INFO_DICT["redfish_username"],
+                    DRAC_REDFISH_INFO_DICT["redfish_password"])
+    url = '%s%s' % (DRAC_REDFISH_INFO_DICT["redfish_address"], _SERVICE_ROOT)
+    conn = sushy.Sushy(url, verify=False, auth=authenticator)
+    manager = conn.get_manager('iDRAC.Embedded.1')
+    oem_manager = manager.get_oem_extension('Dell')
+
+    return oem_manager
+
