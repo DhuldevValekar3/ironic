@@ -43,16 +43,6 @@ INFO_DICT = test_utils.INFO_DICT
 
 DRAC_REDFISH_INFO_DICT = db_utils.get_test_redfish_info()
 
-_SERVICE_ROOT = '/redfish/v1/Managers/'
-
-authenticator = sushy.auth.BasicAuth(
-                    DRAC_REDFISH_INFO_DICT["redfish_username"], 
-                    DRAC_REDFISH_INFO_DICT["redfish_password"])
-url = '%s%s' % (DRAC_REDFISH_INFO_DICT["redfish_address"], _SERVICE_ROOT)
-conn = sushy.Sushy(url, verify=False, auth=authenticator)
-manager = conn.get_manager('iDRAC.Embedded.1')
-oem_manager = manager.get_oem_extension('Dell')
-
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
 class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
