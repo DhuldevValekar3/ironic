@@ -425,50 +425,45 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         if task.node.driver_internal_info.get("clean_steps"):
             if task.node.driver_internal_info.get("clean_steps")[0].get(
                     'step') in _CLEAR_JOBS_CLEAN_STEPS:
-                system = redfish_utils.get_system(task.node)
-                for manager in system.managers:
-                    try:
-
-                        oem_manager = manager.get_oem_extension('Dell')
-                    except sushy.exceptions.OEMExtensionNotFoundError as e:
-                        error_msg = (_("Search for Sushy OEM extension package"
+                try:
+                    oem_manager = drac_common.get_sushy_oem_manager(task.node)
+                except sushy.exceptions.OEMExtensionNotFoundError as e:
+                    error_msg = (_("Search for Sushy OEM extension package"
                                 "'sushy-oem-idrac' failed for node %(node)s."
                                 "Ensure it is installed. Error: %(error)s") %
                                 {'node': task.node.uuid, 'error': e})
-                        LOG.error(error_msg)
-                        raise exception.RedfishError(error=error_msg)
+                    LOG.error(error_msg)
+                    raise exception.RedfishError(error=error_msg)
 
-                    try:
-
-                        unfinished_jobs = oem_manager.get_unfinished_jobs(task)
-                        if unfinished_jobs == []:
-                            info_msg = ("Not found any unfinished jobs for node"
-                                        "%(node)s" %
-                                        {'node':task.node.uuid})
-                            LOG.info(info_msg)
-                        else:
-                            delete_job_response = oem_manager.delete_jobs(
+                try:
+                    unfinished_jobs = oem_manager.get_unfinished_jobs(task)
+                    if unfinished_jobs == []:
+                        info_msg = ("Not found any unfinished jobs for node"
+                                    "%(node)s" %
+                                    {'node':task.node.uuid})
+                        LOG.info(info_msg)
+                    else:
+                        delete_job_response = oem_manager.delete_jobs(
                                                     task,
                                                     job_ids = unfinished_jobs)
-                            if delete_job_response.status_code == _JOB_RESPONSE_CODE:
-                                info_msg = ("Unfinished job cleared for node %(node)s " %
+                        if delete_job_response.status_code == _JOB_RESPONSE_CODE:
+                              info_msg = ("Unfinished job cleared for node %(node)s " %
                                             {'node': task.node.uuid})
-                                LOG.info(info_msg)
-                            else:
-                                error_msg = ("Failed to clear unfinished jobs from queue, "
+                              LOG.info(info_msg)
+                        else:
+                              error_msg = ("Failed to clear unfinished jobs from queue, "
                                             "node : %(node)s " %
                                             {'node': task.node.uuid})
-                                LOG.error(error_msg)
-                                raise exception.RedfishError(error=error_msg)
-
-                    except sushy.exceptions.SushyError as e:
-                        error_msg = ("Sushy OEM extension Python package "
-                                    "sushy-oem-idrac "
-                                    "failed to delete unfinished jobs"
-                                    "for %(node)s, Error : %(error)s" %
-                                    {'node':task.node.uuid, 'error':e})
-                        LOG.error(error_msg)
-                        raise exception.RedfishError(error=error_msg)
+                              LOG.error(error_msg)
+                              raise exception.RedfishError(error=error_msg)
+                except sushy.exceptions.SushyError as e:
+                    error_msg = ("Sushy OEM extension Python package "
+                                "sushy-oem-idrac "
+                                "failed to delete unfinished jobs"
+                                "for %(node)s, Error : %(error)s" %
+                                {'node':task.node.uuid, 'error':e})
+                    LOG.error(error_msg)
+                    raise exception.RedfishError(error=error_msg)
 
         super(
             DracRedfishManagement,
