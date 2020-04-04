@@ -829,6 +829,7 @@ class DracManagementTestCase(test_utils.BaseDracTest):
             self.assertIsNone(return_value)
 
 @mock.patch.object(drac_mgmt, 'redfish_utils', autospec=True)
+@mock.patch.object(drac_common, 'get_sushy_oem_manager',autospec=True)
 class DracRedfishManagementTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
@@ -841,19 +842,20 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             self.context, driver='idrac',
             driver_info=DRAC_REDFISH_INFO_DICT)
 
-    def test_get_properties(self, mock_redfish_utils):
+    def test_get_properties(self,
+                            mock_get_sushy_oem_manager,
+                            mock_redfish_utils):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             properties = task.driver.get_properties()
             for prop in redfish_utils.COMMON_PROPERTIES:
                 self.assertIn(prop, properties)
 
-    def test_clear_job_queue(self, mock_redfish_utils):
-        mock_system = mock_redfish_utils.get_system.return_value
-        mock_manager = mock.MagicMock()
-        mock_system.managers = [mock_manager]
-        mock_manager_oem = mock_manager.get_oem_extension.return_value
-
+    def test_clear_job_queue(self,
+                              mock_get_sushy_oem_manager,
+                              mock_redfish_utils):
+        mock_manager_oem = mock.Mock()
+        mock_get_sushy_oem_manager.return_value = mock_manager_oem
         response_data = {
             'status_code': 200
         }
@@ -868,18 +870,19 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             mock_manager_oem.delete_jobs.assert_called_once_with(task,
                                                     job_ids=['JID_CLEARALL'])
 
-    @mock.patch.object(redfish_utils, 'wait_until_get_system_ready', autospec=True)
+    @mock.patch.object(redfish_utils,
+                        'wait_until_get_system_ready',
+                        autospec=True)
     @mock.patch.object(drac_utils, 'wait_until_idrac_is_ready', autospec=True)
     @mock.patch.object(drac_utils, 'wait_for_host', autospec=True)
     def test_reset_idrac(self,
-                         mock_wait_for_host,
-                         mock_wait_until_idrac_is_ready,
-                         mock_wait_untill_get_system_ready,
-                         mock_redfish_utils):
-        mock_system = mock_redfish_utils.get_system.return_value
-        mock_manager = mock.MagicMock()
-        mock_system.managers = [mock_manager]
-        mock_manager_oem = mock_manager.get_oem_extension.return_value
+                            mock_wait_for_host,
+                            mock_wait_until_idrac_is_ready,
+                            mock_wait_untill_get_system_ready,
+                            mock_get_sushy_oem_manager,
+                            mock_redfish_utils):
+        mock_manager_oem = mock.Mock()
+        mock_get_sushy_oem_manager.return_value = mock_manager_oem
         response_data = {
             'status_code': 200
         }
@@ -894,18 +897,19 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             mock_manager_oem.reset_idrac.assert_called_once_with(task, 
                                                                force='Force')
 
-    @mock.patch.object(redfish_utils, 'wait_until_get_system_ready', autospec=True)
+    @mock.patch.object(redfish_utils,
+                        'wait_until_get_system_ready',
+                        autospec=True)
     @mock.patch.object(drac_utils, 'wait_for_host', autospec=True)
     @mock.patch.object(drac_utils, 'wait_until_idrac_is_ready', autospec=True)
     def test_known_good_state(self, 
-                              mock_wait_until_idrac_is_ready, 
+                              mock_wait_until_idrac_is_ready,
                               mock_wait_for_host,
                               mock_wait_until_get_system_ready,
+                              mock_get_sushy_oem_manager,
                               mock_redfish_utils):
-        mock_system = mock_redfish_utils.get_system.return_value
-        mock_manager = mock.MagicMock()
-        mock_system.managers = [mock_manager]
-        mock_manager_oem = mock_manager.get_oem_extension.return_value
+        mock_manager_oem = mock.Mock()
+        mock_get_sushy_oem_manager.return_value = mock_manager_oem
         response_data = {
             'status_code': 200
         }

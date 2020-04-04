@@ -32,7 +32,6 @@ LOG = logging.getLogger(__name__)
 sushy = importutils.try_import('sushy')
 dracclient_exceptions = importutils.try_import('dracclient.exceptions')
 
-DRAC_REDFISH_INFO_DICT = db_utils.get_test_redfish_info()
 _SERVICE_ROOT = '/redfish/v1/Managers/'
 
 REQUIRED_PROPERTIES = {
@@ -125,12 +124,18 @@ def get_drac_client(node):
     return client
 
 
-def get_sushy_oem_manager():
 
+def get_sushy_oem_manager(node):
+    """Returns a OEM manager object from sushy-oem library.
+
+    :param node: an ironic node object.
+    :returns: a OEM manager object.
+    """
+    driver_info = parse_driver_info(node)
     authenticator = sushy.auth.BasicAuth(
-                    DRAC_REDFISH_INFO_DICT["redfish_username"],
-                    DRAC_REDFISH_INFO_DICT["redfish_password"])
-    url = '%s%s' % (DRAC_REDFISH_INFO_DICT["redfish_address"], _SERVICE_ROOT)
+                        driver_info['redfish_username'],
+                        driver_info['redfish_password'])
+    url = '%s%s' % (driver_info['redfish_address'], _SERVICE_ROOT)
     conn = sushy.Sushy(url, verify=False, auth=authenticator)
     manager = conn.get_manager('iDRAC.Embedded.1')
     oem_manager = manager.get_oem_extension('Dell')

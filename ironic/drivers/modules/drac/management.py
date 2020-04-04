@@ -324,27 +324,25 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         :returns: None if it is completed.
         :raises: RedfishError on an error.
         """
-        system = redfish_utils.get_system(task.node)
-        for manager in system.managers:
-            try:
-                oem_manager = manager.get_oem_extension('Dell')
-            except sushy.exceptions.OEMExtensionNotFoundError as e:
-                error_msg = (_("Search for Sushy OEM extension package "
-                            "'sushy-oem-idrac' failed for node %(node)s. "
-                            "Ensure it is installed. Error: %(error)s") %
-                            {'node': task.node.uuid, 'error': e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
-            try:
-                delete_job_response = oem_manager.delete_jobs(task,
-                                                job_ids=['JID_CLEARALL'])
-            except sushy.exceptions.SushyError as e:
-                error_msg = ("Sushy OEM extension Python package "
-                          "sushy-oem-idrac failed to clear job queue"
-                          "for %(node)s, Error : %(error)s" %
-                          {'node':task.node.uuid, 'error':e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
+        try:
+            oem_manager = drac_common.get_sushy_oem_manager(task.node)
+        except sushy.exceptions.OEMExtensionNotFoundError as e:
+            error_msg = (_("Search for Sushy OEM extension package "
+			"'sushy-oem-idrac' failed for node %(node)s. "
+		        "Ensure it is installed. Error: %(error)s") %
+		        {'node': task.node.uuid, 'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+        try:
+            delete_job_response = oem_manager.delete_jobs(task,
+                                                    job_ids=['JID_CLEARALL'])
+        except sushy.exceptions.SushyError as e:
+            error_msg = ("Sushy OEM extension Python package "
+			"sushy-oem-idrac failed to clear job queue"
+                        "for %(node)s, Error : %(error)s" %
+                        {'node':task.node.uuid, 'error':e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
 
         if delete_job_response.status_code == _JOB_RESPONSE_CODE:
             LOG.info("Job queue cleared for node %(node)s via OEM" %
@@ -366,27 +364,25 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         :returns: None if it is completed.
         :raises: RedfishError on an error.
         """
-        system = redfish_utils.get_system(task.node)
-        for manager in system.managers:
-            try:
-                oem_manager = manager.get_oem_extension('Dell')
-            except sushy.exceptions.OEMExtensionNotFoundError as e:
-                error_msg = (_("Search for Sushy OEM extension package "
-                           "'sushy-oem-idrac' failed for node %(node)s. "
-                           "Ensure it is installed. Error: %(error)s") %
-                         {'node': task.node.uuid, 'error': e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
-            try:
-                reset_job_response = oem_manager.reset_idrac(task,
-                                                            force = 'Force')
-            except sushy.exceptions.SushyError as e:
-                error_msg = ("Sushy OEM extension Python package "
-                          "sushy-oem-idrac failed to reset idrac"
-                          "for %(node)s, Error : %(error)s" %
-                          {'node':task.node.uuid, 'error':e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
+        try:
+            oem_manager = drac_common.get_sushy_oem_manager(task.node)
+        except sushy.exceptions.OEMExtensionNotFoundError as e:
+            error_msg = (_("Search for Sushy OEM extension package "
+                        "'sushy-oem-idrac' failed for node %(node)s. "
+                        "Ensure it is installed. Error: %(error)s") %
+                        {'node': task.node.uuid, 'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+        try:
+            reset_job_response = oem_manager.reset_idrac(task,
+                                                        force = 'Force')
+        except sushy.exceptions.SushyError as e:
+            error_msg = ("Sushy OEM extension Python package "
+                        "sushy-oem-idrac failed to reset idrac"
+                        "for %(node)s, Error : %(error)s" %
+                        {'node':task.node.uuid, 'error':e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
 
         redfish_address = task.node.driver_info.get('redfish_address')
         redfish_address = urlparse(redfish_address)
