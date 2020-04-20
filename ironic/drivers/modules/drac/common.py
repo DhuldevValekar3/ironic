@@ -21,6 +21,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
+from ironic.drivers.modules.redfish import utils as redfish_utils
 
 drac_client = importutils.try_import('dracclient.client')
 drac_constants = importutils.try_import('dracclient.constants')
@@ -129,15 +130,20 @@ def get_sushy_oem_manager(node):
     :param node: an ironic node object.
     :returns: a OEM manager object.
     """
-    redfish_address  = node.driver_info.get('redfish_address')
-    redfish_username = node.driver_info.get('redfish_username')
-    redfish_password = node.driver_info.get('redfish_password')
 
-    authenticator = sushy.auth.BasicAuth(redfish_username, redfish_password)
-    url = '%s%s' % (redfish_address, _SERVICE_ROOT)
-    conn = sushy.Sushy(url, verify=False, auth=authenticator)
-    manager = conn.get_manager('iDRAC.Embedded.1')
-    oem_manager = manager.get_oem_extension('Dell')
+    system = redfish_utils.get_system(node)
+    for manager in system.managers:
+        try:
+            # Get instance of Sushy OEM manager object
+            oem_manager = manager.get_oem_extension('Dell')
+
+        except sushy.exceptions.OEMExtensionNotFoundError as e:
+            error_msg = (_("Search for Sushy OEM extension package"
+                "'sushy-oem-idrac' failed for node %(node)s."
+                "Ensure it is installed. Error: %(error)s") %
+                {'node': node.uuid, 'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
 
     return oem_manager
 
