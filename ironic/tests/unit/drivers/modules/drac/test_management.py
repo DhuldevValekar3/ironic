@@ -856,19 +856,12 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
                               mock_redfish_utils):
         mock_manager_oem = mock.Mock()
         mock_get_sushy_oem_manager.return_value = mock_manager_oem
-        response_data = {
-            'status_code': 200
-        }
-        
-        mock_manager_oem.delete_jobs.return_value =  test_utils.DictToObj(
-            response_data)
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
             return_value = task.driver.management.clear_job_queue(task)
-            mock_manager_oem.delete_jobs.assert_called_once_with(task,
-                                                    job_ids=['JID_CLEARALL'])
+            mock_manager_oem.job_service.delete_jobs.assert_called_once_with(job_ids=['JID_CLEARALL'])
 
     @mock.patch.object(redfish_utils,
                         'wait_until_get_system_ready',
@@ -883,19 +876,12 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
                             mock_redfish_utils):
         mock_manager_oem = mock.Mock()
         mock_get_sushy_oem_manager.return_value = mock_manager_oem
-        response_data = {
-            'status_code': 200
-        }
-
-        mock_manager_oem.reset_idrac.return_value = test_utils.DictToObj(
-                                                                response_data)
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
             return_value = task.driver.management.reset_idrac(task)
-            mock_manager_oem.reset_idrac.assert_called_once_with(task, 
-                                                               force='Force')
+            mock_manager_oem.idrac_card_service.reset_idrac.assert_called_once_with(force='Force')
 
     @mock.patch.object(redfish_utils,
                         'wait_until_get_system_ready',
@@ -910,20 +896,11 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
                               mock_redfish_utils):
         mock_manager_oem = mock.Mock()
         mock_get_sushy_oem_manager.return_value = mock_manager_oem
-        response_data = {
-            'status_code': 200
-        }
-
-        mock_manager_oem.delete_jobs.return_value = test_utils.DictToObj(
-                                                                response_data)
-        mock_manager_oem.reset_idrac.return_value = test_utils.DictToObj(
-                                                                response_data)
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['redfish_address'] = '1.2.3.4'
             return_value = task.driver.management.known_good_state(task)
-            mock_manager_oem.delete_jobs.assert_called_once_with(task,
-                                                    job_ids=['JID_CLEARALL'])
-            mock_manager_oem.reset_idrac.assert_called_once_with(task, 
-                                                               force='Force')
+            mock_manager_oem.job_service.delete_jobs.assert_called_once_with(job_ids=['JID_CLEARALL'])
+            mock_manager_oem.idrac_card_service.reset_idrac.assert_called_once_with(force='Force')
+

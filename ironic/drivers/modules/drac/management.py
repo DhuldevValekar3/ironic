@@ -324,7 +324,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         oem_manager = drac_common.get_sushy_oem_manager(task.node)
 
         try:
-            oem_manager.delete_jobs(job_ids=['JID_CLEARALL'])
+            oem_manager.job_service.delete_jobs(job_ids=['JID_CLEARALL'])
         except sushy.exceptions.SushyError as e:
             error_msg = ("Sushy OEM extension Python package "
 			"sushy-oem-idrac failed to clear job queue"
@@ -347,7 +347,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         oem_manager = drac_common.get_sushy_oem_manager(task.node)
 
         try:
-            oem_manager.reset_idrac(force = 'Force')
+            oem_manager.idrac_card_service.reset_idrac(force = 'Force')
         except sushy.exceptions.SushyError as e:
             error_msg = ("Sushy OEM extension Python package "
                         "sushy-oem-idrac failed to reset idrac"
@@ -391,15 +391,14 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
                 oem_manager = drac_common.get_sushy_oem_manager(task.node)
                 try:
-
-                    unfinished_jobs = oem_manager.get_unfinished_jobs()
+                    unfinished_jobs = oem_manager.job_collection.get_unfinished_jobs()
                     if unfinished_jobs == []:
                         info_msg = ("Not found any unfinished jobs for node"
                                     "%(node)s" %
                                     {'node':task.node.uuid})
                         LOG.info(info_msg)
                     else:
-                        oem_manager.delete_jobs(job_ids=unfinished_jobs)
+                        oem_manager.job_service.delete_jobs(job_ids=unfinished_jobs)
 
                 except sushy.exceptions.SushyError as e:
                     error_msg = ("Sushy OEM extension Python package "

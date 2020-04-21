@@ -104,7 +104,7 @@ def wait_until_idrac_is_ready(oem_manager, host, retries, retry_delay):
     while retries > 0:
         LOG.debug("Checking to see if the iDRAC for node %s is ready" % host)
 
-        if oem_manager.is_idrac_ready():
+        if oem_manager.lc_service.is_idrac_ready():
             LOG.debug("The iDRAC for node %s is ready" % host)
             return
 
