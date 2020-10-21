@@ -1,0 +1,106 @@
+{
+    "@Redfish.Copyright": "Copyright (c) 2020 Dell Inc. or its subsidiaries.",
+    "@Redfish.License": "Apache License, Version 2.0. For full text, see link: http://www.apache.org/licenses/LICENSE-2.0",
+    "SchemaDefinition": "RedfishInteroperabilityProfile.v1_3_1",
+    "ProfileName": "Utils",
+    "ProfileVersion": "1.0.0",
+    "Purpose": "Specifies the OpenStack ironic vendor-independent redfish hardware type utils.py module requirements of a Redfish service implementation, typically offered by a baseboard management controller (BMC).",
+    "OwningEntity": "Dell Inc.",
+    "ContactInfo": "digmabar.patil@dell.com, richard.pioso@dell.com, michael.raineri@gmail.com, pranjali.shrivastava@dellteam.com, dhuldev.valekar@dellteam.com",
+    "Protocol": {
+        "MinVersion": "1.0.0"
+    },
+    "Resources": {
+        "ComputerSystem": {
+            "MinVersion": "1.0.0",
+            "Purpose": "Every implementation must have the logical view of the System.",
+            "PropertyRequirements": {
+                "AssetTag": {
+                    "ReadRequirement": "Recommended"
+                },
+                "BiosVersion": {
+                    "ReadRequirement": "Recommended"
+                },
+                "Boot": {
+                    "PropertyRequirements": {
+                        "BootSourceOverrideEnabled": {
+                            "WriteRequirement": "Mandatory",
+                            "Comparison": "AnyOf",
+                            "Values": ["Disabled", "Once", "Continuous"]
+                        },
+                        "BootSourceOverrideMode": {
+                            "WriteRequirement": "Mandatory",
+                            "Comparison": "AnyOf",
+                            "Values": ["Legacy", "UEFI"]
+                        },
+                        "BootSourceOverrideTarget": {
+                            "WriteRequirement": "Mandatory",
+                            "Comparison": "AnyOf",
+                            "Values": [
+                                "None", "Pxe", "Floppy", "Cd", "Usb",
+                                "Hdd", "BiosSetup", "Utilities", "Diags",
+                                "UefiShell", "UefiTarget", "SDCard", "UefiHttp"
+                            ]
+                        }
+                    }
+                },
+                "Description": {
+                    "ReadRequirement": "Recommended"
+                },
+                "HostName": {
+                    "ReadRequirement": "Recommended"
+                },
+                "IndicatorLED": {
+                    "ReadRequirement": "IfImplemented",
+                    "Comparison": "AnyOf",
+                    "Values": ["Unknown", "Lit", "Blinking", "Off"]
+                },
+                "Manufacturer": {
+                    "ReadRequirement": "Recommended"
+                },
+                "MemorySummary": {
+                    "ReadRequirement": "Recommended",
+                    "PropertyRequirements":{
+                        "Status": {},
+                        "TotalSystemMemoryGiB": {},
+                        "HealthRollup": {}
+                    }
+                },
+                "Model": {
+                    "ReadRequirement": "Recommended"
+                },
+                "Oem": {
+                    "ReadRequirement": "Recommended"
+                },
+                "PowerState": {
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "AnyOf",
+                    "Values": ["On", "Off", "PoweringOn", "PoweringOff"]
+                },
+                "SerialNumber": {
+                    "ReadRequirement": "Recommended"
+                },
+                "SKU": {
+                    "ReadRequirement": "Recommended"
+                },
+                "SystemType": {
+                    "ReadRequirement": "IfImplemented",
+                    "Comparison": "AnyOf",
+                    "Values": [
+                        "Physical", "Virtual", "OS",
+                        "PhysicallyPartitioned",
+                        "VirtuallyPartitioned", "Composed"
+                    ]
+                }
+            }
+        },
+        "SessionCollection": {
+            "CreateResource": "True",
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 0
+                }
+            }
+        }
+   }
+}

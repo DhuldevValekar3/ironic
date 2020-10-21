@@ -1,0 +1,13 @@
+{
+    "@Redfish.Copyright": "Copyright (c) 2020 Dell Inc. or its subsidiaries.",
+    "@Redfish.License": "Apache License, Version 2.0. For full text, see link: http://www.apache.org/licenses/LICENSE-2.0",
+    "SchemaDefinition": "RedfishInteroperabilityProfile.v1_3_1",
+    "ProfileName": "OpenStackIronicRedfishDriver",
+    "ProfileVersion": "1.0.0",
+    "Purpose": "Specifies the OpenStack ironic vendor-independent redfish hardware type requirements of a Redfish service implementation, typically offered by a baseboard management controller (BMC).",
+    "OwningEntity": "Dell Inc.",
+    "ContactInfo": "digmabar.patil@dell.com, richard.pioso@dell.com, michael.raineri@gmail.com, pranjali.shrivastava@dell.com, dhuldev.valekar@dell.com",
+    "Protocol": {
+        "MinVersion": "1.0.0"
+    }
+}

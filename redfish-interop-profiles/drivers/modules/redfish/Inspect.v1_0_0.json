@@ -1,0 +1,146 @@
+{
+    "@Redfish.Copyright": "Copyright (c) 2020 Dell Inc. or its subsidiaries.",
+    "@Redfish.License": "Apache License, Version 2.0. For full text, see link: http://www.apache.org/licenses/LICENSE-2.0",
+    "SchemaDefinition": "RedfishInteroperabilityProfile.v1_3_1",
+    "ProfileName": "Inspect",
+    "ProfileVersion": "1.0.0",
+    "Purpose": "Specifies the OpenStack ironic vendor-independent redfish hardware type inspect.py module requirements of a Redfish service implementation, typically offered by a baseboard management controller (BMC).",
+    "OwningEntity": "Dell Inc.",
+    "ContactInfo": "digmabar.patil@dellteam.com, richard.pioso@dell.com, michael.raineri@gmail.com, pranjali.shrivastava@dellteam.com, dhuldev.valekar@dellteam.com",
+    "Protocol": {
+        "MinVersion": "1.0.0"
+    },
+    "Resources": {
+        "ComputerSystem": {
+            "PropertyRequirements": {
+                "Boot": {
+                    "ReadRequirement": "Recommended",
+                    "PropertyRequirements": {
+                        "BootSourceOverrideMode": {
+                            "Comparison": "AnyOf",
+                            "Values": ["Legacy", "UEFI"]
+                        }
+                    }
+                },
+                "MemorySummary": {
+                    "PropertyRequirements": {
+                        "TotalSystemMemoryGiB": {}
+                    }
+                },
+                "Processors": {},
+                "SimpleStorage": {
+                    "ReadRequirement": "Conditional",
+                    "ConditionalRequirements": [{
+                        "Purpose": "Either SimpleStorage or Storage must be implemented, even if the system is disk-less.",
+                        "CompareProperty": "Storage",
+                        "CompareType": "Absent",
+                        "ReadRequirement": "Mandatory"
+                    }]
+                },
+                "Storage": {
+                    "ReadRequirement": "Conditional",
+                    "ConditionalRequirements": [{
+                        "Purpose": "Either SimpleStorage or Storage must be implemented, even if the system is disk-less.",
+                        "CompareProperty": "SimpleStorage",
+                        "CompareType": "Absent",
+                        "ReadRequirement": "Mandatory"
+                    }]
+                }
+            }
+        },
+        "ComputerSystemCollection": {
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 1
+                }
+            }
+        },
+        "Drive": {
+            "PropertyRequirements": {
+                "CapacityBytes": {
+                    "ReadRequirement": "IfPopulated"
+                }
+            }
+        },
+        "EthernetInterface": {
+            "PropertyRequirements": {
+                "MACAddress": {
+                    "ReadRequirement": "Mandatory"
+                },
+                "Status": {
+                    "Health": {}
+                }
+            }
+        },
+        "EthernetInterfaceCollection": {
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 1
+                }
+            }
+        },
+        "Processor": {
+            "PropertyRequirements": {
+                "ProcessorArchitecture": {
+                    "PropertyRequirements": {
+                        "ReadRequirement": "Mandatory",
+                        "Comparison": "AnyOf",
+                        "Values": ["x86", "IA-64", "ARM", "MIPS", "OEM"]
+                    }
+                },
+                "TotalThreads": {}
+            }
+        },
+        "ProcessorCollection": {
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 1
+                }
+            }
+        },
+        "SimpleStorage": {
+            "PropertyRequirements": {
+                "Devices": {
+                    "PropertyRequirements": {
+                        "CapacityBytes": {
+                            "ReadRequirement": "IfPopulated"
+                        },
+                        "Status": {}
+                    }
+                }
+            }
+        },
+        "SimpleStorageCollection": {
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 1
+                }
+            }
+        },
+        "Storage": {
+            "PropertyRequirements": {
+                "Volumes": {},
+                "Drives": {}
+            }
+        },
+        "StorageCollection": {
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 1
+                }
+            }
+        },
+        "Volume": {
+            "PropertyRequirements": {
+                "CapacityBytes": {}
+            }
+        },
+        "VolumeCollection": {
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 1
+                }
+            }
+        }
+    }
+}

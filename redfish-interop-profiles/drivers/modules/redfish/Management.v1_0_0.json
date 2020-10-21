@@ -1,0 +1,170 @@
+{
+    "@Redfish.Copyright": "Copyright (c) 2020 Dell Inc. or its subsidiaries.",
+    "@Redfish.License": "Apache License, Version 2.0. For full text, see link: http://www.apache.org/licenses/LICENSE-2.0",
+    "SchemaDefinition": "RedfishInteroperabilityProfile.v1_3_1",
+    "ProfileName": "Management",
+    "ProfileVersion": "1.0.0",
+    "Purpose": "Specifies the OpenStack ironic vendor-independent redfish hardware type management.py module requirements of a Redfish service implementation, typically offered by a baseboard management controller (BMC).",
+    "OwningEntity": "Dell Inc.",
+    "ContactInfo": "digmabar.patil@dellteam.com, richard.pioso@dell.com, michael.raineri@gmail.com, pranjali.shrivastava@dellteam.com, dhuldev.valekar@dellteam.com",
+    "Protocol": {
+        "MinVersion": "1.0.0"
+    },
+    "Resources": {
+        "Chassis": {
+            "PropertyRequirements": {
+                "IndicatorLED": {
+                    "ReadRequirement": "Mandatory",
+                    "WriteRequirement": "Mandatory",
+                    "Comparison": "AnyOf",
+                    "Values": ["Lit", "Off", "Blinking"]
+                },
+                "Power": {
+                    "ReadRequirement": "Recommended"
+                },
+                "Thermal": {
+                    "ReadRequirement": "Recommended"
+                }
+            }
+        },
+        "ComputerSystem": {
+            "PropertyRequirements": {
+                "Boot": {
+                    "ReadRequirement": "Mandatory",
+                    "PropertyRequirements": {
+                        "BootSourceOverrideEnabled": {
+                            "WriteRequirement": "Mandatory",
+                            "Comparison": "AnyOf",
+                            "Values": ["Once","Continuous"]
+                        },
+                        "BootSourceOverrideMode": {
+                            "WriteRequirement": "Mandatory",
+                            "Comparison": "AnyOf",
+                            "Values": ["UEFI","Legacy"]
+                        },
+                        "BootSourceOverrideTarget": {
+                            "WriteRequirement": "Mandatory",
+                            "MinSupportValues": ["Pxe", "Hdd", "Cd", "BiosSetup"]
+                        }
+                    }
+                },
+                "IndicatorLED": {
+                    "ReadRequirement": "Mandatory",
+                    "WriteRequirement": "Mandatory",
+                    "Comparison": "AnyOf",
+                    "Values": ["Lit", "Off", "Blinking"]
+                },
+                "Links": {
+                    "PropertyRequirements": {
+                        "Chassis": {}
+                    }
+                },
+                "SimpleStorage": {
+                    "ReadRequirement": "Mandatory"
+                },
+                "Storage": {
+                    "ReadRequirement": "Mandatory"
+                }
+            },
+            "ActionRequirements": {
+                "Reset": {
+                    "ReadRequirement": "Mandatory",
+                    "Parameters": {
+                        "ResetType": {
+                            "ParameterValues": ["Nmi"]
+                        }
+                    }
+                }
+            }
+        },
+        "Drive": {
+            "PropertyRequirements": {
+                "IndicatorLED": {
+                    "ReadRequirement": "Mandatory",
+                    "WriteRequirement": "Mandatory",
+                    "Comparison": "AnyOf",
+                    "Values": ["Lit", "Off", "Blinking"]
+                }
+            }
+        },
+        "Power": {
+            "PropertyRequirements": {
+                "PowerSupplies": {
+                    "PropertyRequirements": {
+                        "PowerCapacityWatts": {},
+                        "LineInputVoltage": {},
+                        "LastPowerOutputWatts": {},
+                        "SerialNumber": {},
+                        "Status": {
+                            "PropertyRequirements": {
+                                "State": {},
+                                "Health": {}
+                            }
+                        },
+                        "InputRanges": {
+                            "PropertyRequirements": {
+                                "MinimumVoltage": {},
+                                "MaximumVoltage": {},
+                                "MinimumFrequencyHz": {},
+                                "MaximumFrequencyHz": {},
+                                "OutputWattage": {}
+                            }
+                        }
+
+                    }
+                }
+            }
+        },
+        "SimpleStorage": {
+            "PropertyRequirements": {
+                "Devices": {
+                    "PropertyRequirements": {
+                        "Name": {},
+                        "CapacityBytes": {
+                            "ReadRequirement": "IfPopulated"
+                        },
+                        "Status": {}
+                    }
+                }
+            }
+        },
+        "Storage": {
+            "PropertyRequirements": {
+                "Drives": {
+                    "ReadRequirement": "Mandatory"
+                }
+            }
+        },
+        "Thermal": {
+            "PropertyRequirements": {
+                "Fans": {
+                    "PropertyRequirements": {
+                        "MaxReadingRange": {},
+                        "MinReadingRange": {},
+                        "Reading": {},
+                        "ReadingUnits": {},
+                        "SerialNumber": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "PhysicalContext": {},
+                        "Status": {
+                            "PropertyRequirements": {
+                                "State": {},
+                                "Health": {}
+                            }
+                        }
+                    }
+                },
+                "Temperatures": {
+                    "PropertyRequirements": {
+                        "MaxReadingRangeTemp": {},
+                        "MinReadingRangeTemp": {},
+                        "ReadingCelsius": {},
+                        "SensorNumber": {},
+                        "PhysicalContext": {}
+                    }
+                }
+            }
+        }
+    }
+}

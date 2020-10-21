@@ -1,0 +1,37 @@
+{
+    "@Redfish.Copyright": "Copyright (c) 2020 Dell Inc. or its subsidiaries.",
+    "@Redfish.License": "Apache License, Version 2.0. For full text, see link: http://www.apache.org/licenses/LICENSE-2.0",
+    "SchemaDefinition": "RedfishInteroperabilityProfile.v1_3_1",
+    "ProfileName": "Power",
+    "ProfileVersion": "1.0.0",
+    "Purpose": "Specifies the OpenStack ironic vendor-independent redfish hardware type power.py module requirements of a Redfish service implementation, typically offered by a baseboard management controller (BMC).",
+    "OwningEntity": "Dell Inc.",
+    "ContactInfo": "digmabar.patil@dell.com, richard.pioso@dell.com, michael.raineri@gmail.com, pranjali.shrivastava@dellteam.com, dhuldev.valekar@dellteam.com",
+    "Protocol": {
+        "MinVersion": "1.0.0"
+    },
+    "Resources": {
+        "ComputerSystem": {
+            "PropertyRequirements": {
+                "PowerState": {
+                    "ReadRequirement": "Mandatory",
+                    "Comparision": "AnyOf",
+                    "Values": ["On", "Off", "PoweringOn", "PoweringOff"]
+                }
+            },
+            "ActionRequirements": {
+                "Reset": {
+                    "ReadRequirement": "Mandatory",
+                    "Parameters": {
+                        "ResetType": {
+                            "ParameterValues": [
+                                "ForceOff", "ForceRestart",
+                                "GracefulRestart", "GracefulShutdown", "On"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,91 @@
+{
+    "@Redfish.Copyright": "Copyright (c) 2020 Dell Inc. or its subsidiaries.",
+    "@Redfish.License": "Apache License, Version 2.0. For full text, see link: http://www.apache.org/licenses/LICENSE-2.0",
+    "SchemaDefinition": "RedfishInteroperabilityProfile.v1_3_1",
+    "ProfileName": "Boot",
+    "ProfileVersion": "1.0.0",
+    "Purpose": "Specifies the OpenStack ironic vendor-independent redfish hardware type boot.py module requirements of a Redfish service implementation, typically offered by a baseboard management controller (BMC).",
+    "OwningEntity": "Dell Inc.",
+    "ContactInfo": "digmabar.patil@dellteam.com, richard.pioso@dell.com, michael.raineri@gmail.com, pranjali.shrivastava@dellteam.com, dhuldev.valekar@dellteam.com",
+    "Protocol": {
+        "MinVersion": "1.0.0"
+    },
+    "Resources": {
+        "ComputerSystem": {
+            "PropertyRequirements": {
+                "Boot": {
+                    "ReadRequirement": "Mandatory",
+                    "PropertyRequirements": {
+                        "BootSourceOverrideEnabled": {
+                            "WriteRequirement": "Mandatory",
+                            "Comparison": "AnyOf",
+                            "Values": ["Once","Continuous"]
+                        },
+                        "BootSourceOverrideMode": {
+                            "Comparison": "AnyOf",
+                            "Values": ["Legacy", "UEFI"]
+                        },
+                        "BootSourceOverrideTarget": {
+                            "WriteRequirement": "Mandatory",
+                            "MinSupportValues": ["Pxe", "Hdd", "Cd", "BiosSetup"]
+                        }
+                    }
+                },
+                "PowerState": {
+                    "ReadRequirement": "Mandatory",
+                    "Comparison": "AnyOf",
+                    "Values": ["Off", "On", "PoweringOff", "PoweringOn"]
+                }
+            },
+            "ActionRequirements": {
+                "Reset": {
+                    "Parameters": {
+                        "ResetType": {
+                            "ParameterValues": ["On", "ForceOff", "GracefulShutdown", "GracefulRestart", "ForceRestart"]
+                        }
+                    }
+                }
+            }
+        },
+        "Manager": {
+            "Links": {
+                "PropertyRequirements": {
+                    "ManagedBy": {}
+                }
+            }
+        },
+        "VirtualMedia": {
+            "PropertyRequirements": {
+                "Image": {},
+                "Inserted": {
+                    "ReadRequirement": "Recommended"
+                },
+                "MediaTypes": {
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "AnyOf",
+                    "Values": ["CD", "Floppy", "USBStick", "DVD"]
+                }
+            },
+            "ActionRequirements": {
+                "EjectMedia": {},
+                "InsertMedia": {
+                    "Parameters": {
+                        "Inserted": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "WriteProtected": {
+                            "ReadRequirement": "Recommended"
+                        }
+                    }
+                }
+            }
+        },
+        "VirtualMediaCollection": {
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 1
+                }
+            }
+        }
+    }
+}
